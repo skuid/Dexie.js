@@ -41,16 +41,13 @@ const
     // When calling error.stack or promise.stack, limit the number of asyncronic stacks to print out. 
     MAX_LONG_STACKS = 20,
     ZONE_ECHO_LIMIT = 7,
+    SET_IMMEDIATE = "setImmediate";
+    MUTATION_OBSERVER = "MutationObserver",
     nativePromiseInstanceAndProto = (()=>{
-        try {
-            // Be able to patch native async functions
-            return new Function(`let F=async ()=>{},p=F();return [p,Object.getPrototypeOf(p),Promise.resolve(),F.constructor];`)();
-        } catch(e) {
-            var P = _global.Promise;
-            return P ?
-                [P.resolve(), P.prototype, P.resolve()] :
-                []; 
-        }
+        let P = _global.Promise;
+        return P ?
+            [P.resolve(), P.prototype, P.resolve()] :
+            [];
     })(),
     resolvedNativePromise = nativePromiseInstanceAndProto[0],
     nativePromiseProto = nativePromiseInstanceAndProto[1],
@@ -73,14 +70,14 @@ var stack_being_generated = false;
 var schedulePhysicalTick = resolvedGlobalPromise ?
     () => {resolvedGlobalPromise.then(physicalTick);}
     :
-    _global.setImmediate ? 
+    _global[SET_IMMEDIATE] ? 
         // setImmediate supported. Those modern platforms also supports Function.bind().
-        setImmediate.bind(null, physicalTick) :
-        _global.MutationObserver ?
+        _global[SET_IMMEDIATE].bind(null, physicalTick) :
+        _global[MUTATION_OBSERVER] ?
             // MutationObserver supported
             () => {
                 var hiddenDiv = document.createElement("div");
-                (new MutationObserver(() => {
+                (new _global[MUTATION_OBSERVER](() => {
                     physicalTick();
                     hiddenDiv = null;
                 })).observe(hiddenDiv, { attributes: true });
